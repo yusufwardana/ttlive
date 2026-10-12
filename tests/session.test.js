@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Session } from '../session.js';
+test('one rose is one point and duplicate IDs never count twice',()=>{const s=new Session(); const e={type:'rose',id:'a',candidate:1,round:1};s.apply(e);s.apply(e);assert.deepEqual(s.snapshot().scores,[1,0]);});
+test('reset clears scores, pauses timer and rejects previous round events',()=>{const s=new Session();s.apply({type:'rose',id:'a',candidate:2,round:1});s.apply({type:'reset',id:'b',round:1});s.apply({type:'rose',id:'c',candidate:1,round:1});assert.deepEqual(s.snapshot().scores,[0,0]);assert.equal(s.snapshot().remaining,300000);assert.equal(s.snapshot().running,false);assert.equal(s.snapshot().round,2);});
+test('pause preserves elapsed time and timer ends at zero',()=>{let now=0;const s=new Session(()=>now);s.apply({type:'start',id:'a',round:1});now=1200;s.apply({type:'pause',id:'b',round:1});assert.equal(s.snapshot().remaining,298800);now=10000;assert.equal(s.snapshot().remaining,298800);s.apply({type:'start',id:'c',round:1});now=500000;assert.equal(s.snapshot().remaining,0);assert.equal(s.snapshot().running,false);});
+test('invalid commands cannot alter scores; active candidate is selectable',()=>{const s=new Session();s.apply({type:'rose',id:'a',candidate:3,round:1});s.apply({type:'select',id:'b',candidate:2,round:1});assert.deepEqual(s.snapshot().scores,[0,0]);assert.equal(s.snapshot().active,2);});
